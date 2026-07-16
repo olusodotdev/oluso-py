@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "oluso"
+version = "1.0.0"
+description = "AI-powered error monitoring for Python applications: automatic error reporting, breadcrumb tracking, and intelligent error grouping."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "David Ezeh" }]
+requires-python = ">=3.9"
+keywords = [
+    "error",
+    "monitoring",
+    "reporting",
+    "error-tracking",
+    "error-monitoring",
+    "ai",
+    "crash-reporting",
+    "logging",
+    "debugging",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+# Core has zero required third-party dependencies -- it uses only the
+# standard library (urllib for transport, contextvars for scoping), the same
+# "framework-agnostic core, opt-in everything else" design as the Node/Go
+# SDKs. Framework integrations declare their own deps as extras below.
+dependencies = []
+
+[project.optional-dependencies]
+flask = ["flask>=2.3"]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "flask>=2.3",
+    "mypy",
+    "ruff",
+]
+
+[project.urls]
+Homepage = "https://github.com/olusodotdev/oluso-py"
+Repository = "https://github.com/olusodotdev/oluso-py"
+Issues = "https://github.com/olusodotdev/oluso-py/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/oluso"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.mypy]
+# The installed mypy version's oldest supported check target; the package's
+# actual floor is still requires-python = ">=3.9" above -- Python 3.9
+# natively supports the PEP 585 generics (dict[str, Any], etc.) used here.
+python_version = "3.10"
+ignore_missing_imports = true
