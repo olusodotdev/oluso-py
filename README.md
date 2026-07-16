@@ -9,6 +9,8 @@ pip install oluso
 
 # With a framework integration
 pip install "oluso[flask]"
+pip install "oluso[django]"
+pip install "oluso[fastapi]"
 ```
 
 ## Usage with Flask
@@ -29,6 +31,47 @@ def index():
 ```
 
 `init_app` wraps `app.wsgi_app`, so it works with any WSGI application, not just Flask. It scopes breadcrumbs to each request, auto-reports unhandled exceptions and 5xx responses, then re-raises so Flask/Werkzeug's own error handling still runs — Oluso only observes and reports, it never changes how your app responds to errors.
+
+## Usage with Django
+
+```python
+# settings.py
+from oluso import Oluso, Options
+
+OLUSO_CLIENT = Oluso(Options(api_key="your-api-key", environment="production"))
+
+MIDDLEWARE = [
+    "oluso.integrations.django.OlusoMiddleware",
+    # ... your other middleware
+]
+```
+
+```python
+# views.py
+def index(request):
+    raise RuntimeError("something went wrong")  # captured and reported automatically
+```
+
+The middleware scopes breadcrumbs to each request and auto-reports unhandled exceptions (via Django's `process_exception` hook, which fires with the real exception before Django generates its error response) and 5xx responses.
+
+## Usage with FastAPI
+
+```python
+from fastapi import FastAPI
+from oluso import Oluso, Options
+from oluso.integrations.fastapi import OlusoMiddleware
+
+client = Oluso(Options(api_key="your-api-key", environment="production"))
+
+app = FastAPI()
+app.add_middleware(OlusoMiddleware, client=client)
+
+@app.get("/")
+def index():
+    raise RuntimeError("something went wrong")  # captured and reported automatically
+```
+
+This is plain ASGI middleware, so it works with any ASGI app, not just FastAPI — Starlette apps work identically. Breadcrumbs are scoped per request the same way as the other integrations; `HTTPException`s with a 4xx status aren't reported (only 5xx and unhandled exceptions are).
 
 ## Breadcrumbs & User Context
 

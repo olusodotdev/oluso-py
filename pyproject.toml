@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "oluso"
-version = "1.0.0"
+version = "1.1.0"
 description = "AI-powered error monitoring for Python applications: automatic error reporting, breadcrumb tracking, and intelligent error grouping."
 readme = "README.md"
 license = "MIT"
@@ -41,10 +41,15 @@ dependencies = []
 
 [project.optional-dependencies]
 flask = ["flask>=2.3"]
+django = ["django>=4.2"]
+fastapi = ["fastapi>=0.100"]
 dev = [
     "pytest>=7.0",
     "pytest-cov",
     "flask>=2.3",
+    "django>=4.2",
+    "fastapi>=0.100",
+    "httpx",
     "mypy",
     "ruff",
 ]
