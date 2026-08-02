@@ -125,11 +125,77 @@ class Oluso:
             fingerprint=fingerprint,
             context=err_ctx,
             timestamp=int(time.time() * 1000),
+            exception=self._exception_details(error),
+            sdk={"name": "oluso-python", "version": "1.1.1", "language": "python"},
         )
 
         with self._pending_lock:
             self._pending += 1
         self._send_queue.put(report.to_dict())
+
+    def _exception_details(self, error: BaseException) -> Dict[str, Any]:
+        """Capture provider-specific attributes and the full Python cause
+        chain. Values are redacted and converted to bounded JSON-safe data."""
+        seen: set[int] = set()
+
+        def safe(value: Any, depth: int = 0) -> Any:
+            if depth > 6:
+                return "[Max Depth Reached]"
+            if value is None or isinstance(value, (bool, int, float)):
+                return value
+            if isinstance(value, str):
+                return value[:4000] + ("... [truncated]" if len(value) > 4000 else "")
+            if isinstance(value, (bytes, bytearray, memoryview)):
+                return f"[Binary {len(value)} bytes]"
+            if isinstance(value, dict):
+                result = {
+                    str(k): safe(v, depth + 1)
+                    for k, v in list(value.items())[:200]
+                }
+                if len(value) > 200:
+                    result["_truncated"] = True
+                return result
+            if isinstance(value, (list, tuple, set)):
+                return [safe(v, depth + 1) for v in list(value)[:100]]
+            # requests/httpx and many provider SDKs attach their actionable
+            # HTTP evidence as a response object rather than a plain dict.
+            if hasattr(value, "status_code"):
+                response: Dict[str, Any] = {
+                    "status_code": safe(getattr(value, "status_code", None), depth + 1),
+                    "headers": safe(getattr(value, "headers", None), depth + 1),
+                    "url": safe(str(getattr(value, "url", "")), depth + 1),
+                }
+                body = getattr(value, "text", None)
+                if body is None:
+                    body = getattr(value, "content", None)
+                response["body"] = safe(body, depth + 1)
+                return response
+            return repr(value)[:1000]
+
+        def visit(current: BaseException, depth: int = 0) -> Dict[str, Any]:
+            seen.add(id(current))
+            attributes = self._sanitizer.sanitize_value(safe(vars(current)))
+            status = getattr(current, "status", None) or getattr(current, "status_code", None) \
+                or getattr(current, "http_code", None)
+            result: Dict[str, Any] = {
+                "type": type(current).__name__,
+                "message": str(current)[:4000],
+                "stack_trace": "".join(
+                    traceback.format_exception(type(current), current, current.__traceback__)
+                )[:16000],
+                "attributes": attributes or None,
+            }
+            code = getattr(current, "code", None)
+            if isinstance(code, (str, int)):
+                result["code"] = code
+            if isinstance(status, int):
+                result["status_code"] = status
+            cause = current.__cause__ or current.__context__
+            if cause is not None and depth < 5 and id(cause) not in seen:
+                result["causes"] = [visit(cause, depth + 1)]
+            return {k: v for k, v in result.items() if v is not None}
+
+        return visit(error)
 
     def _build_error_context(
         self,

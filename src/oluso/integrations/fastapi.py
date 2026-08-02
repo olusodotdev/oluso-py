@@ -60,11 +60,17 @@ class OlusoMiddleware:
                 data={"method": method, "url": path},
             )
 
-            status_holder: Dict[str, int] = {}
+            status_holder: Dict[str, Any] = {"body": bytearray(), "headers": {}}
 
             async def send_wrapper(message: Dict[str, Any]) -> None:
                 if message["type"] == "http.response.start":
                     status_holder["code"] = message["status"]
+                    status_holder["headers"] = {
+                        k.decode("latin-1"): v.decode("latin-1")
+                        for k, v in message.get("headers", [])
+                    }
+                elif message["type"] == "http.response.body" and len(status_holder["body"]) < 4096:
+                    status_holder["body"].extend(message.get("body", b"")[:4096 - len(status_holder["body"])])
                 await send(message)
 
             try:
@@ -78,6 +84,11 @@ class OlusoMiddleware:
             if status >= 500:
                 req_ctx = _build_request_context(self.client, scope)
                 error = RuntimeError(f"server error: {status} - {method} {path}")
+                setattr(error, "response", {
+                    "status_code": status,
+                    "headers": status_holder["headers"],
+                    "body": bytes(status_holder["body"]).decode("utf-8", "replace"),
+                })
                 self.client.capture_http_error(error, req_ctx, status)
 
             add_breadcrumb(

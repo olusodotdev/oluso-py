@@ -66,6 +66,12 @@ class OlusoMiddleware:
             status = getattr(response, "status_code", 200)
             if status >= 500 and not getattr(request, _REPORTED_ATTR, False):
                 error = RuntimeError(f"server error: {status} - {method} {path}")
+                content = getattr(response, "content", b"")
+                setattr(error, "response", {
+                    "status_code": status,
+                    "headers": dict(getattr(response, "headers", {})),
+                    "body": bytes(content[:4096]).decode("utf-8", "replace") if content else "",
+                })
                 self.client.capture_http_error(error, _build_request_context(self.client, request), status)
 
             add_breadcrumb(

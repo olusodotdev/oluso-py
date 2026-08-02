@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "oluso"
-version = "1.1.0"
+version = "1.1.1"
 description = "AI-powered error monitoring for Python applications: automatic error reporting, breadcrumb tracking, and intelligent error grouping."
 readme = "README.md"
 license = "MIT"
@@ -52,6 +52,8 @@ dev = [
     "httpx",
     "mypy",
     "ruff",
+    "build>=1.2",
+    "twine>=5.0",
 ]
 
 [project.urls]
@@ -64,6 +66,7 @@ packages = ["src/oluso"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 
 [tool.ruff]
 line-length = 100

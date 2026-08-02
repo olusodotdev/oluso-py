@@ -29,6 +29,29 @@ def test_capture_exception_sends_report(recording_server, tmp_path):
     assert headers.get("x-oluso-signature") == "test-api-key"
 
 
+def test_capture_exception_includes_redacted_provider_details_and_cause(recording_server, tmp_path):
+    client = make_client(recording_server, queue_dir=str(tmp_path))
+
+    cause = ValueError("invalid upload metadata")
+    error = RuntimeError("File size too large")
+    error.http_code = 400
+    error.details = {
+        "actual_bytes": 28692515,
+        "maximum_bytes": 10485760,
+        "access_token": "must-not-leave-the-process",
+    }
+    error.__cause__ = cause
+
+    client.capture_exception(error)
+
+    wait_for(lambda: recording_server.count() == 1)
+    exception = recording_server.last()["exception"]
+    assert exception["status_code"] == 400
+    assert exception["attributes"]["details"]["actual_bytes"] == 28692515
+    assert exception["attributes"]["details"]["access_token"] == "[REDACTED]"
+    assert exception["causes"][0]["message"] == "invalid upload metadata"
+
+
 def test_capture_exception_queues_on_failure(recording_server, tmp_path):
     recording_server.set_fail(True)
     client = make_client(recording_server, queue_dir=str(tmp_path))

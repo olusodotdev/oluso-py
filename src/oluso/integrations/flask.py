@@ -81,6 +81,9 @@ class OlusoMiddleware:
             if status >= 500 and not environ.get(_REPORTED_KEY):
                 req_ctx = _build_request_context(self.client, environ)
                 error = RuntimeError(f"server error: {status} - {method} {path}")
+                if isinstance(result, (list, tuple)):
+                    preview = b"".join(result)[:4096].decode("utf-8", "replace")
+                    setattr(error, "response", {"status_code": status, "body": preview})
                 self.client.capture_http_error(error, req_ctx, status)
 
             add_breadcrumb(

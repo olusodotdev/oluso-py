@@ -11,3 +11,4 @@ dist/
 .venv/
 venv/
 .DS_Store
+.venv-old

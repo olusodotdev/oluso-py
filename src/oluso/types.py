@@ -147,6 +147,9 @@ class ErrorReport:
     fingerprint: Optional[str] = None
     context: Optional[ErrorContext] = None
     timestamp: Optional[int] = None  # unix millis
+    schema_version: int = 2
+    exception: Optional[dict[str, Any]] = None
+    sdk: Optional[dict[str, Any]] = None
 
     def to_dict(self) -> dict[str, Any]:
         return _omit_none(
@@ -160,6 +163,9 @@ class ErrorReport:
                 "fingerprint": self.fingerprint,
                 "context": self.context.to_dict() if self.context else None,
                 "timestamp": self.timestamp,
+                "schema_version": self.schema_version,
+                "exception": self.exception,
+                "sdk": self.sdk,
             }
         )
 
