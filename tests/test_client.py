@@ -1,6 +1,7 @@
 import pytest
 
 from oluso import Oluso, Options, add_breadcrumb, scope, set_user
+from oluso.client import SDK_VERSION
 from oluso.types import UserContext
 
 from .conftest import wait_for
@@ -26,6 +27,11 @@ def test_capture_exception_sends_report(recording_server, tmp_path):
     headers = recording_server.headers[-1]
 
     assert report["message"] == "boom"
+    assert report["sdk"] == {
+        "name": "oluso-python",
+        "version": SDK_VERSION,
+        "language": "python",
+    }
     assert headers.get("x-oluso-signature") == "test-api-key"
 
 

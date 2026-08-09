@@ -10,6 +10,14 @@ from typing import Any, Dict, Optional, Tuple
 from .context import _snapshot
 from .fingerprint import generate_fingerprint
 from .options import Options
+from .monitors import (
+    AssertionOptions,
+    HeartbeatOptions,
+    MonitorClient,
+    MonitorReceipt,
+    MonitorReference,
+    MonitorWorkflow,
+)
 from .queue import OfflineQueue
 from .rate_limiter import RateLimiter
 from .sanitizer import Sanitizer
@@ -18,6 +26,7 @@ from .transport import TransportError, send_error_report
 from .types import ErrorContext, ErrorReport, RequestContext, Severity
 
 logger = logging.getLogger("oluso")
+SDK_VERSION = "1.2.0"  # x-release-please-version
 
 
 class Oluso:
@@ -35,6 +44,13 @@ class Oluso:
         self._sanitizer = Sanitizer(options.sensitive_keys)
         self._rate_limiter = RateLimiter(options.max_errors_per_minute)
         self._offline_queue = OfflineQueue(options.max_queue_size, options.queue_dir)
+        self._monitor_client = MonitorClient(
+            options.api_key,
+            options.monitor_endpoint,
+            options.timeout,
+            options.monitor_retries,
+            options.sensitive_keys,
+        )
 
         self._send_queue: "queue.Queue[Dict[str, Any]]" = queue.Queue()
         self._pending = 0
@@ -57,6 +73,22 @@ class Oluso:
         RequestContext manually.
         """
         return self._sanitizer
+
+    def heartbeat(
+        self, url: str, options: Optional[HeartbeatOptions] = None
+    ) -> MonitorReceipt:
+        """Report liveness through a monitor's dedicated secret URL."""
+        return self._monitor_client.heartbeat(url, options)
+
+    def assert_outcome(self, options: AssertionOptions) -> MonitorReceipt:
+        """Report whether a process returned the expected business outcome."""
+        return self._monitor_client.assert_outcome(options)
+
+    def workflow(
+        self, monitor: MonitorReference, run_id: Optional[str] = None
+    ) -> MonitorWorkflow:
+        """Track ordered checkpoints for one durable workflow run."""
+        return self._monitor_client.workflow(monitor, run_id)
 
     def capture_exception(
         self, error: BaseException, custom_context: Optional[Dict[str, Any]] = None
@@ -126,7 +158,7 @@ class Oluso:
             context=err_ctx,
             timestamp=int(time.time() * 1000),
             exception=self._exception_details(error),
-            sdk={"name": "oluso-python", "version": "1.1.1", "language": "python"},
+            sdk={"name": "oluso-python", "version": SDK_VERSION, "language": "python"},
         )
 
         with self._pending_lock:

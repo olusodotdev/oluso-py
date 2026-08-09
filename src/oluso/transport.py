@@ -12,6 +12,9 @@ class TransportError(Exception):
     """
 
 
+MAX_PAYLOAD_BYTES = 512 * 1024
+
+
 def send_error_report(
     endpoint: str, report: Dict[str, Any], api_key: str, timeout: float
 ) -> None:
@@ -21,6 +24,10 @@ def send_error_report(
     a fire-and-forget call would.
     """
     body = json.dumps(report).encode("utf-8")
+    if len(body) > MAX_PAYLOAD_BYTES:
+        raise TransportError(
+            f"oluso: report payload is {len(body)} bytes; maximum is {MAX_PAYLOAD_BYTES}"
+        )
     req = urllib.request.Request(
         endpoint,
         data=body,

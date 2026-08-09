@@ -6,6 +6,7 @@ from typing import List, Optional
 from .types import FingerprintFunc, Severity, ShouldReportFunc
 
 DEFAULT_ENDPOINT = "https://api.oluso.dev/api/v1/error/report"
+DEFAULT_MONITOR_ENDPOINT = "https://api.oluso.dev/api/v1/monitors/events"
 
 
 @dataclass
@@ -17,6 +18,11 @@ class Options:
 
     # Override the ingestion endpoint. Useful for self-hosting.
     endpoint: str = DEFAULT_ENDPOINT
+
+    # Override the authenticated monitor event endpoint. Heartbeats use the
+    # dedicated secret URL supplied by the Oluso dashboard instead.
+    monitor_endpoint: str = DEFAULT_MONITOR_ENDPOINT
+    monitor_retries: int = 2
 
     environment: str = "production"
     default_severity: Severity = Severity.MEDIUM

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "oluso"
-version = "1.1.1"
+version = "1.2.0"
 description = "AI-powered error monitoring for Python applications: automatic error reporting, breadcrumb tracking, and intelligent error grouping."
 readme = "README.md"
 license = "MIT"
@@ -71,6 +71,13 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py39"
+
+[tool.ruff.lint]
+# Keep the release gate focused on correctness errors. Ruff has added and
+# promoted rule families over time; an explicit selection prevents a future
+# tool upgrade from turning Python-modernization preferences into hundreds of
+# unrelated release blockers for this Python 3.9-compatible package.
+select = ["E4", "E7", "E9", "F"]
 
 [tool.mypy]
 # The installed mypy version's oldest supported check target; the package's

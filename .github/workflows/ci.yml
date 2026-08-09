@@ -7,6 +7,11 @@ on:
     branches: [main]
 
 jobs:
+  conformance:
+    uses: olusodotdev/oluso-js/.github/workflows/sdk-conformance.yml@main
+    with:
+      sdk_language: python
+
   build-and-test:
     runs-on: ubuntu-latest
     strategy:

@@ -126,6 +126,40 @@ client = Oluso(Options(
 
 Call `client.flush(timeout=5)` before your process exits so a capture right before shutdown isn't lost.
 
+## Monitor outcomes, heartbeats, and workflows
+
+Create the matching monitor under **Project → Monitors**. The normal `Oluso` client exposes all three process-monitoring helpers:
+
+```python
+import os
+
+from oluso import AssertionOptions, HeartbeatOptions
+
+client.heartbeat(
+    os.environ["OLUSO_BACKUP_HEARTBEAT_URL"],
+    HeartbeatOptions(context={"job": "nightly-backup", "rows": 12_402}),
+)
+
+client.assert_outcome(
+    AssertionOptions(
+        monitor="checkout-total",
+        passed=charged_amount == expected_amount,
+        expected=expected_amount,
+        actual=charged_amount,
+        duration_ms=duration_ms,
+        context={"order_id": order_id},
+    )
+)
+
+deployment = client.workflow("production-deployment")
+deployment.checkpoint("queued", context={"commit_sha": commit_sha})
+deployment.checkpoint("built", context={"artifact": artifact})
+deployment.checkpoint("deployed", context={"region": "lon1"})
+deployment.complete(context={"release": artifact})
+```
+
+The heartbeat URL is a monitor-specific secret shown once at creation; store it in your secret manager. Use `{"monitor_id": "..."}` for an immutable monitor reference. Context is recursively redacted and bounded. Transient network/408/425/429/5xx failures retry with exponential backoff, while permanent 4xx responses do not. The project connection string is never attached to heartbeat requests.
+
 ## Error Report Structure
 
 Reports sent to the API include:
